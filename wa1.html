@@ -21,7 +21,8 @@
 <body>
 <img src="" id="preview">
 <canvas id="canvas"></canvas>
-<canvas id="canvas2"></canvas></br>
+<canvas id="canvas2"></canvas>
+<canvas id="canvas3"></canvas></br>
 <input type="file" accept="image/*" id="getfile"></br>
 <div class="progress">
   <div class="bar" id="Bar"></div>
@@ -38,6 +39,10 @@
 <a href="https://www.colordic.org/w" target="_blank">このサイト</a> に載っているいずれかの色に変換します。</br></br>
 3 番目に出現する画像は</br>
 2 番目の画像のノイズ削除処理をしたものです。</br>
+5 × 5 のメディアンフィルタです。</br></br>
+
+4 番目に出現する画像は</br>
+3 番目の画像のノイズ削除処理をしたものです。</br>
 5 × 5 のメディアンフィルタです。</br></br>
 <script>
 function MyThread(i, ctx, canvas) {
@@ -72,11 +77,98 @@ for(let j = 0; j < canvas.height; j++) {
     ctx.fillRect(i, j, 1, 1);
 }
         const diff = canvas.width - i;
-    	const widthPercentage = (i / canvas.width) * 100 / 2;
+    	const widthPercentage = (i / canvas.width) * 100 / 3;
     	document.getElementById('Bar').style.width = widthPercentage + '%';
     if(i == canvas.width - 1) {
-      MyThread2(ctx, canvas);
+MyThread2(ctx, canvas);
     }
+}
+
+async function MyThread3(ctx2, canvas2) {
+  const canvas = document.getElementById('canvas3');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  canvas.width = canvas2.width;
+  canvas.height = canvas2.height;
+  for(let i = 0; i < canvas2.width; i++) {
+    for(let j = 0; j < canvas2.height; j++) {
+      const imageData = ctx2.getImageData(i, j, 1, 1);
+      ctx.fillStyle = "rgba(" + imageData.data[0] + "," + imageData.data[1] + "," + imageData.data[2] + "," + imageData.data[3] / 255 + ")";
+      ctx.fillRect(i, j, 1, 1);
+    }
+  }
+  let resultArrayR = [];
+  let resultArrayG = [];
+  let resultArrayB = [];
+  let resultArrayA = [];
+  for(let i = 0; i < canvas.width; i++) {
+  for(let j = 0; j < canvas.height; j++) {
+  let arrayR = [];
+  let arrayG = [];
+  let arrayB = [];
+  let arrayA = [];
+  for(let i2 = i - 2; i2 <= i + 2; i2++) {
+  for(let j2 = j - 2; j2 <= j + 2; j2++) {
+    if(i2 < 0 || canvas.width <= i2 || j2 < 0 || canvas.height <= j2) continue;
+    const imageData = ctx.getImageData(i2, j2, 1, 1);
+    arrayR.push(imageData.data[0]);
+    arrayG.push(imageData.data[1]);
+    arrayB.push(imageData.data[2]);
+    arrayA.push(imageData.data[3]);
+  }
+  }
+  for(let i2 = 0; i2 < arrayR.length; i2++) {
+  for(let j2 = i2 + 1; j2 < arrayR.length; j2++) {
+    if(arrayR[i2] + arrayG[i2] + arrayB[i2] < arrayR[j2] + arrayG[j2] + arrayB[j2]) {
+      let oneTimeR = arrayR[i2];
+      let oneTimeG = arrayG[i2];
+      let oneTimeB = arrayB[i2];
+      let oneTimeA = arrayA[i2];
+      arrayR[i2] = arrayR[j2];
+      arrayG[i2] = arrayG[j2];
+      arrayB[i2] = arrayB[j2];
+      arrayA[i2] = arrayA[j2];
+      arrayR[j2] = oneTimeR;
+      arrayG[j2] = oneTimeG;
+      arrayB[j2] = oneTimeB;
+      arrayA[j2] = oneTimeA;
+    }
+  }
+  }
+  //console.log(arrayR.length);
+  if(arrayR.length == 25) {
+    resultArrayR.push(arrayR[12]);
+    resultArrayG.push(arrayG[12]);
+    resultArrayB.push(arrayB[12]);
+    resultArrayA.push(arrayA[12]);
+  }
+  else {
+    resultArrayR.push(arrayR[8]);
+    resultArrayG.push(arrayG[8]);
+    resultArrayB.push(arrayB[8]);
+    resultArrayA.push(arrayA[8]);
+  }
+  if(2 < i) {
+  ctx.fillStyle = "rgba(" + resultArrayR[(i - 3) * canvas.height + j] + "," + resultArrayG[(i - 3) * canvas.height + j] + "," + resultArrayB[(i - 3) * canvas.height + j] + "," + resultArrayA[(i - 3) * canvas.height + j] / 255 + ")";
+  ctx.fillRect(i - 3, j, 1, 1);
+
+  if(i == canvas.width - 1) {
+  ctx.fillStyle = "rgba(" + resultArrayR[(i - 2) * canvas.height + j] + "," + resultArrayG[(i - 2) * canvas.height + j] + "," + resultArrayB[(i - 2) * canvas.height + j] + "," + resultArrayA[(i - 2) * canvas.height + j] / 255 + ")";
+  ctx.fillRect(i - 2, j, 1, 1);
+
+    ctx.fillStyle = "rgba(" + resultArrayR[(i - 1) * canvas.height + j] + "," + resultArrayG[(i - 1) * canvas.height + j] + "," + resultArrayG[(i - 1) * canvas.height + j] + "," + resultArrayA[(i - 1) * canvas.height + j] / 255 + ")";
+  ctx.fillRect(i - 1, j, 1, 1);
+
+    ctx.fillStyle = "rgba(" + resultArrayR[i * canvas.height + j] + "," + resultArrayG[i * canvas.height + j] + "," + resultArrayB[i * canvas.height + j] + "," + resultArrayA[i * canvas.height + j] / 255 + ")";
+  ctx.fillRect(i, j, 1, 1);
+  }
+  }
+  }
+
+  const widthPercentage = (i / canvas.width + 2) * 100 / 3;
+  document.getElementById('Bar').style.width = widthPercentage + '%';
+  const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
+  await sleep(0);
+  }
 }
 
 async function MyThread2(ctx2, canvas2) {
@@ -100,7 +192,7 @@ async function MyThread2(ctx2, canvas2) {
   let arrayR = [];
   let arrayG = [];
   let arrayB = [];
-  resultArrayA.push(ctx.getImageData(i, j, 1, 1).data[3]);
+  let arrayA = [];
   for(let i2 = i - 2; i2 <= i + 2; i2++) {
   for(let j2 = j - 2; j2 <= j + 2; j2++) {
     if(i2 < 0 || canvas.width <= i2 || j2 < 0 || canvas.height <= j2) continue;
@@ -108,6 +200,7 @@ async function MyThread2(ctx2, canvas2) {
     arrayR.push(imageData.data[0]);
     arrayG.push(imageData.data[1]);
     arrayB.push(imageData.data[2]);
+    arrayA.push(imageData.data[3]);
   }
   }
   for(let i2 = 0; i2 < arrayR.length; i2++) {
@@ -116,12 +209,15 @@ async function MyThread2(ctx2, canvas2) {
       let oneTimeR = arrayR[i2];
       let oneTimeG = arrayG[i2];
       let oneTimeB = arrayB[i2];
+      let oneTimeA = arrayA[i2];
       arrayR[i2] = arrayR[j2];
       arrayG[i2] = arrayG[j2];
       arrayB[i2] = arrayB[j2];
+      arrayA[i2] = arrayA[j2];
       arrayR[j2] = oneTimeR;
       arrayG[j2] = oneTimeG;
       arrayB[j2] = oneTimeB;
+      arrayA[j2] = oneTimeA;
     }
   }
   }
@@ -130,11 +226,13 @@ async function MyThread2(ctx2, canvas2) {
     resultArrayR.push(arrayR[12]);
     resultArrayG.push(arrayG[12]);
     resultArrayB.push(arrayB[12]);
+    resultArrayA.push(arrayA[12]);
   }
   else {
     resultArrayR.push(arrayR[8]);
     resultArrayG.push(arrayG[8]);
     resultArrayB.push(arrayB[8]);
+    resultArrayA.push(arrayA[8]);
   }
   if(2 < i) {
   ctx.fillStyle = "rgba(" + resultArrayR[(i - 3) * canvas.height + j] + "," + resultArrayG[(i - 3) * canvas.height + j] + "," + resultArrayB[(i - 3) * canvas.height + j] + "," + resultArrayA[(i - 3) * canvas.height + j] / 255 + ")";
@@ -153,12 +251,14 @@ async function MyThread2(ctx2, canvas2) {
   }
   }
 
-  const widthPercentage = (i / canvas.width + 1) * 100 / 2;
+  const widthPercentage = (i / canvas.width + 1) * 100 / 3;
   document.getElementById('Bar').style.width = widthPercentage + '%';
   const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
   await sleep(0);
   }
+MyThread3(ctx, canvas);
 }
+
 
 var file = document.querySelector('#getfile');
 
@@ -175,6 +275,10 @@ file.onchange = function (){
     const canvas2 = document.getElementById('canvas2');
     canvas2.width = 0;
     canvas2.height = 0;
+
+    const canvas3 = document.getElementById('canvas3');
+    canvas3.width = 0;
+    canvas3.height = 0;
 
     const image = document.getElementById('preview');
     const canvas = document.getElementById('canvas');
